@@ -1,0 +1,186 @@
+#include <iostream>
+#include <fstream>
+#include <sstream>
+#include <string>
+
+using namespace std;
+
+// Class to hold robot information
+class Robot
+{
+private:
+    string type, name;
+    int posX, posY;
+
+public:
+    void setType(string newType) { type = newType; }
+    void setName(string newName) { name = newName; }
+    void setPosX(int newX) { posX = newX; }
+    void setPosY(int newY) { posY = newY; }
+    string getType() { return type; }
+    string getName() { return name; }
+    int getPosX() { return posX; }
+    int getPosY() { return posY; }
+
+    Robot(const string &type = "", const string &name = "", int posX = 0, int posY = 0)
+        : type(type), name(name), posX(posX), posY(posY) {}
+
+    void display() const
+    {
+        cout << "Type: " << type << ", Name: " << name
+             << ", Position: (" << posX << ", " << posY << ")" << endl;
+    }
+
+    char getSymbol() const
+    {
+        if (type == "Madbot")
+            return 'M';
+        else if (type == "RoboTank")
+            return 'R';
+        else if (type == "Terminator")
+            return 'T';
+        else if (type == "BlueThunder")
+            return 'B';
+        else if (type == "RoboCop")
+            return 'C';
+        else
+            return '.'; // Default symbol for unknown types
+    }
+};
+
+// Function to read file and store information in dynamic array
+void readFile(const string &filename, int &m, int &n, int &steps, Robot *&robots, int &numRobots)
+{
+    ifstream infile(filename);
+    if (!infile.is_open())
+    {
+        cerr << "Unable to open file" << endl;
+        return;
+    }
+
+    string line;
+
+    // Read the M by N line
+    if (getline(infile, line))
+    {
+        // cout << "Reading line: " << line << endl; // Debug
+        stringstream ss(line);
+        string part;
+        getline(ss, part, ':'); // Ignore the first part
+        ss >> m >> n;           // Read the two integers
+    }
+
+    // Read the steps line
+    if (getline(infile, line))
+    {
+        // cout << "Reading line: " << line << endl; // Debug
+        stringstream ss(line);
+        string part;
+        getline(ss, part, ':'); // Ignore the first part
+        ss >> steps;            // Read the integer
+    }
+
+    // Read the robots line
+    if (getline(infile, line))
+    {
+        // cout << "Reading line: " << line << endl; // Debug
+        stringstream ss(line);
+        string part;
+        getline(ss, part, ':'); // Ignore the first part
+        ss >> numRobots;        // Read the integer
+    }
+
+    // Dynamically allocate array for robots
+    robots = new Robot[numRobots];
+
+    // Read each robot's information
+    int index = 0;
+    while (getline(infile, line) && index < numRobots)
+    {
+        // cout << "Reading line: " << line << endl; // Debug
+        stringstream ss(line);
+        string type, name;
+        int posX, posY;
+        ss >> type >> name >> posX >> posY;
+        robots[index++] = Robot(type, name, posX, posY);
+    }
+
+    infile.close();
+}
+
+void createBattlefield(int m, int n, Robot *robots, int numRobots)
+{
+    // Adjust m and n to account for boundaries
+    int rows = m + 2;
+    int cols = n + 2;
+
+    // Create a 2D array initialized with '.'
+    char **battlefield = new char *[rows];
+    for (int i = 0; i < rows; ++i)
+    {
+        battlefield[i] = new char[cols];
+        for (int j = 0; j < cols; ++j)
+        {
+            // Set boundaries to 'x'
+            if (i == 0 || i == rows - 1 || j == 0 || j == cols - 1)
+            {
+                battlefield[i][j] = 'x';
+            }
+            else
+            {
+                battlefield[i][j] = '.';
+            }
+        }
+    }
+
+    // Place the robots on the battlefield
+    for (int i = 0; i < numRobots; ++i)
+    {
+        int x = robots[i].getPosX();
+        int y = robots[i].getPosY();
+        if (x >= 0 && x < m && y >= 0 && y < n)
+        {
+            battlefield[x + 1][y + 1] = robots[i].getSymbol(); // Adjust for boundary offset and use getSymbol()
+        }
+    }
+
+    // Display the battlefield
+    for (int i = 0; i < rows; ++i)
+    {
+        for (int j = 0; j < cols; ++j)
+        {
+            cout << battlefield[i][j] << ' ';
+        }
+        cout << endl;
+    }
+
+    // Deallocate battlefield
+    for (int i = 0; i < rows; ++i)
+    {
+        delete[] battlefield[i];
+    }
+    delete[] battlefield;
+}
+
+int main()
+{
+    const string filename = "battlefield.txt";
+    int m = 0, n = 0, steps = 0, numRobots = 0;
+    Robot *robots = nullptr;
+    readFile(filename, m, n, steps, robots, numRobots);
+
+    cout << "M by N: " << m << " " << n << endl;
+    cout << "Steps: " << steps << endl;
+    cout << "Number of robots: " << numRobots << endl;
+    for (int i = 0; i < numRobots; ++i)
+    {
+        robots[i].display();
+    }
+
+    createBattlefield(m, n, robots, numRobots);
+
+    // Clean up dynamically allocated robots array
+    delete[] robots;
+
+    return 0;
+}
